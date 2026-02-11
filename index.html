@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MGC - Monochrome Professional Chat (Stable Node)</title>
+    <title>MGC - Monochrome Professional Chat</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
@@ -23,7 +23,6 @@
             background: linear-gradient(180deg, #111111 0%, #000000 100%);
         }
         
-        /* แก้ไข Layout พื้นที่แชท */
         #chat-container {
             background-color: #ffffff;
             position: relative;
@@ -33,49 +32,19 @@
             justify-content: center;
         }
 
-        /* STABLE POSITIONING: 
-           ใช้ CSS บังคับให้ Widget แสดงผลเต็มพื้นที่ Container 
-           โดยไม่ต้องย้าย DOM บ่อยๆ เพื่อป้องกัน Loop Load
+        /* การใช้ Standard Mode ของ SDK จะสร้าง Bubble ที่มุมขวา 
+           เราจะเตรียมพื้นที่ใน Card ไว้รองรับหากคุณต้องการปรับเปลี่ยนภายหลัง
         */
-        .woot-widget-holder {
-            position: absolute !important; 
-            width: 100% !important;
-            height: 100% !important;
-            inset: 0 !important; 
-            margin: 0 !important;
-            max-height: 100% !important;
-            max-width: 100% !important;
-            box-shadow: none !important;
-            border-radius: 0 !important;
-            z-index: 50 !important;
-            transform: none !important;
-            visibility: hidden; /* ซ่อนไว้จนกว่าจะ Ready */
+        .welcome-screen {
+            text-align: center;
+            padding: 2rem;
+            animation: fadeIn 0.5s ease forwards;
         }
 
-        .woot-widget-holder.active {
-            visibility: visible !important;
-            display: block !important;
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(10px); } 
+            to { opacity: 1; transform: translateY(0); } 
         }
-
-        /* บังคับ Iframe ภายในให้เต็มพื้นที่ */
-        .woot-widget-holder iframe {
-            border: none !important;
-            width: 100% !important;
-            height: 100% !important;
-            position: absolute !important;
-            inset: 0 !important;
-            border-radius: 0 !important;
-        }
-
-        .woot-widget-bubble {
-            display: none !important;
-        }
-
-        .fade-in { animation: fadeIn 0.3s ease forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-
-        .sync-active { animation: spin 0.8s linear; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="flex items-center justify-center p-4 md:p-8">
@@ -97,32 +66,25 @@
                     
                     <div class="space-y-10">
                         <section>
-                            <h2 class="text-[10px] uppercase tracking-[0.4em] text-white/40 font-bold mb-4">Node Health</h2>
+                            <h2 class="text-[10px] uppercase tracking-[0.4em] text-white/40 font-bold mb-4">Service Status</h2>
                             <div class="bg-white/5 rounded-2xl p-5 border border-white/5">
                                 <div class="flex items-center gap-3 mb-2">
-                                    <div id="status-dot" class="relative flex h-2 w-2">
-                                        <span id="dot-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-gray-400 opacity-75"></span>
-                                        <span id="dot-static" class="relative inline-flex rounded-full h-2 w-2 bg-gray-500"></span>
+                                    <div class="relative flex h-2 w-2">
+                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                        <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                                     </div>
-                                    <span id="status-text" class="text-xs font-semibold tracking-wide">Ready</span>
+                                    <span class="text-xs font-semibold tracking-wide">SDK Standard Active</span>
                                 </div>
-                                <p id="socket-info" class="text-[10px] text-white/30 italic font-mono truncate">Protocol: Standard</p>
+                                <p class="text-[10px] text-white/30 italic font-mono">Official SDK Protocol</p>
                             </div>
                         </section>
 
                         <section>
-                            <h2 class="text-[10px] uppercase tracking-[0.4em] text-white/40 font-bold mb-4">Sync Management</h2>
-                            <button onclick="syncData()" id="sync-btn-ui" class="group flex items-center justify-center gap-2 w-full py-3 bg-white/5 hover:bg-white text-[10px] text-white hover:text-black font-bold uppercase tracking-widest rounded-xl border border-white/10 transition-all">
-                                <svg xmlns="http://www.w3.org/2000/svg" id="sync-icon" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                                Sync Messages
-                            </button>
+                            <h2 class="text-[10px] uppercase tracking-[0.4em] text-white/40 font-bold mb-4">คู่มือการใช้งาน</h2>
+                            <p class="text-[10px] text-white/40 leading-relaxed">
+                                ระบบทำงานผ่าน Widget มาตรฐาน<br>คลิกที่ปุ่มมุมขวาล่างเพื่อเริ่มสนทนา
+                            </p>
                         </section>
-                        
-                        <button onclick="clearSession()" class="text-[9px] text-white/20 hover:text-white uppercase tracking-widest transition-colors underline">
-                            Re-establish Session
-                        </button>
                     </div>
                 </div>
                 <div class="pt-8 border-t border-white/10 text-[9px] text-white/20 uppercase tracking-[0.2em]">
@@ -130,137 +92,44 @@
                 </div>
             </div>
 
-            <!-- Chat Interface Area -->
+            <!-- Chat Area Shell -->
             <div id="chat-container" class="flex-1">
-                <div id="setup-view" class="flex flex-col items-center justify-center h-full text-center p-8 fade-in">
+                <div class="welcome-screen">
                     <div class="mb-6 inline-flex w-20 h-20 bg-black/5 items-center justify-center rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-black/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-black/10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
                         </svg>
                     </div>
-                    <h3 class="text-xl font-semibold text-black mb-2">Secure Message Node</h3>
-                    <p id="setup-text" class="text-sm text-black/40 mb-10 max-w-xs mx-auto">Establishing stable link to Chatwoot Cluster...</p>
-                    
-                    <button 
-                        onclick="initiateChat()" 
-                        id="connect-btn"
-                        class="px-10 py-4 border-2 border-black text-[12px] font-bold uppercase tracking-[0.2em] rounded-full hover:bg-black hover:text-white transition-all shadow-sm"
-                    >
-                        Establish Connection
-                    </button>
-                    
-                    <div id="loading-view" class="hidden mt-6">
-                        <div class="inline-block w-6 h-6 border-2 border-black/10 border-t-black rounded-full animate-spin"></div>
-                    </div>
+                    <h3 class="text-xl font-semibold text-black mb-2 uppercase tracking-tighter">MGC Support Node</h3>
+                    <p class="text-sm text-black/40 max-w-xs mx-auto">ยินดีต้อนรับสู่ศูนย์บริการข้อมูล MGC<br>เจ้าหน้าที่พร้อมดูแลคุณผ่านระบบแชท</p>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- 1. Script ตั้งค่าพื้นฐานตามที่คุณต้องการ -->
     <script>
       window.chatwootSettings = {
-        position: "left",
-        type: "standard",
-        hideMessageBubble: true,
+        "position": "right",
+        "type": "standard",
+        "launcherTitle": "คุยกับเรา"
       };
 
-      let sdkLoaded = false;
-      let isMovingWidget = false;
-
-      function initiateChat() {
-        if(sdkLoaded) return;
-        const btn = document.getElementById('connect-btn');
-        const loader = document.getElementById('loading-view');
-        const txt = document.getElementById('setup-text');
-
-        btn.classList.add('hidden');
-        loader.classList.remove('hidden');
-        document.getElementById('status-text').innerText = "Connecting...";
-
-        (function(d,t) {
-          var BASE_URL="https://chatwoot-development-7684.up.railway.app";
-          var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
-          g.src=BASE_URL+"/packs/js/sdk.js";
-          g.async = true;
-          
-          g.onerror = function() {
-            loader.classList.add('hidden');
-            btn.classList.remove('hidden');
-            btn.innerText = "Retry Connection";
-            txt.innerText = "Connection failed (Error 429). Please try again later.";
-            txt.classList.add('text-red-500');
-            document.getElementById('status-text').innerText = "Error";
-          };
-
-          s.parentNode.insertBefore(g,s);
-          g.onload=function(){
-            window.chatwootSDK.run({
-              websiteToken: 'dkhmsCUsBqS7iyJkRs2iqPRb',
-              baseUrl: BASE_URL
-            });
-            sdkLoaded = true;
-          }
-        })(document,"script");
-      }
-
-      window.addEventListener("chatwoot:ready", function () {
-        updateUIConnected();
-        const container = document.getElementById('chat-container');
-        const setupView = document.getElementById('setup-view');
-
-        const checkWidget = setInterval(() => {
-          const widget = document.querySelector('.woot-widget-holder');
-          
-          if (widget && window.$chatwoot && !isMovingWidget) {
-            // ปรับตำแหน่งและย้ายเพียงครั้งเดียว
-            isMovingWidget = true;
-            
-            widget.style.setProperty('position', 'absolute', 'important');
-            widget.style.setProperty('inset', '0', 'important');
-            widget.style.setProperty('width', '100%', 'important');
-            widget.style.setProperty('height', '100%', 'important');
-
-            container.appendChild(widget);
-            widget.classList.add('active');
-            
-            if (setupView) setupView.style.display = 'none';
-            
-            // ให้เวลา DOM จัดการก่อนเปิดแชท เพื่อลดโอกาสเกิด Loop
-            setTimeout(() => {
-                window.$chatwoot.toggle("open");
-                clearInterval(checkWidget);
-                isMovingWidget = false;
-            }, 500);
-          }
-        }, 500);
-      });
-
-      function updateUIConnected() {
-          document.getElementById('status-text').innerText = "Real-time Active";
-          document.getElementById('socket-info').innerText = "WebSocket: Stabilized";
-          const dotStatic = document.getElementById('dot-static');
-          const dotPing = document.getElementById('dot-ping');
-          dotStatic.className = "relative inline-flex rounded-full h-2 w-2 bg-green-500";
-          dotPing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75";
-      }
-
-      function syncData() {
-        if (!window.$chatwoot) return;
-        const icon = document.getElementById('sync-icon');
-        icon.classList.add('sync-active');
-        window.$chatwoot.toggle("close");
-        setTimeout(() => {
-            window.$chatwoot.toggle("open");
-            setTimeout(() => icon.classList.remove('sync-active'), 800);
-        }, 1000);
-      }
-
-      function clearSession() {
-          if(confirm("ล้างข้อมูลเซสชันปัจจุบันเพื่อเริ่มใหม่?")) {
-              localStorage.clear();
-              location.reload();
-          }
-      }
+      // 2. สคริปต์โหลด SDK มาตรฐาน
+      (function(d,t) {
+        var BASE_URL="https://chatwoot-development-7684.up.railway.app";
+        var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
+        g.src=BASE_URL+"/packs/js/sdk.js";
+        g.async = true;
+        s.parentNode.insertBefore(g,s);
+        g.onload=function(){
+          window.chatwootSDK.run({
+            websiteToken: 'dkhmsCUsBqS7iyJkRs2iqPRb',
+            baseUrl: BASE_URL
+          })
+        }
+      })(document,"script");
     </script>
+
 </body>
 </html>
