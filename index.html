@@ -33,24 +33,31 @@
             justify-content: center;
         }
 
-        /* FORCE CONTAINER STYLES:
-           ลบคุณสมบัติ Fixed และ Offset ของ Chatwoot SDK ทิ้งทั้งหมด
+        /* STABLE POSITIONING: 
+           ใช้ CSS บังคับให้ Widget แสดงผลเต็มพื้นที่ Container 
+           โดยไม่ต้องย้าย DOM บ่อยๆ เพื่อป้องกัน Loop Load
         */
         .woot-widget-holder {
             position: absolute !important; 
             width: 100% !important;
             height: 100% !important;
-            inset: 0 !important; /* บังคับติดขอบทุกด้านของ container */
+            inset: 0 !important; 
             margin: 0 !important;
             max-height: 100% !important;
             max-width: 100% !important;
             box-shadow: none !important;
             border-radius: 0 !important;
             z-index: 50 !important;
-            transform: none !important; /* ป้องกัน SDK ใส่ transform */
+            transform: none !important;
+            visibility: hidden; /* ซ่อนไว้จนกว่าจะ Ready */
         }
 
-        /* บังคับ Iframe ภายในให้เต็มพื้นที่และลบ Shadow */
+        .woot-widget-holder.active {
+            visibility: visible !important;
+            display: block !important;
+        }
+
+        /* บังคับ Iframe ภายในให้เต็มพื้นที่ */
         .woot-widget-holder iframe {
             border: none !important;
             width: 100% !important;
@@ -152,12 +159,13 @@
 
     <script>
       window.chatwootSettings = {
-        position: "left", // ลองเปลี่ยนเป็น left เพื่อแก้ทาง SDK internal logic
+        position: "left",
         type: "standard",
         hideMessageBubble: true,
       };
 
       let sdkLoaded = false;
+      let isMovingWidget = false;
 
       function initiateChat() {
         if(sdkLoaded) return;
@@ -197,12 +205,16 @@
 
       window.addEventListener("chatwoot:ready", function () {
         updateUIConnected();
+        const container = document.getElementById('chat-container');
+        const setupView = document.getElementById('setup-view');
+
         const checkWidget = setInterval(() => {
           const widget = document.querySelector('.woot-widget-holder');
-          const container = document.getElementById('chat-container');
           
-          if (widget && window.$chatwoot) {
-            // บังคับล้าง inline styles ที่ SDK อาจจะเติมเข้ามาภายหลัง
+          if (widget && window.$chatwoot && !isMovingWidget) {
+            // ปรับตำแหน่งและย้ายเพียงครั้งเดียว
+            isMovingWidget = true;
+            
             widget.style.setProperty('position', 'absolute', 'important');
             widget.style.setProperty('inset', '0', 'important');
             widget.style.setProperty('width', '100%', 'important');
@@ -210,13 +222,17 @@
 
             container.appendChild(widget);
             widget.classList.add('active');
-            document.getElementById('setup-view').classList.add('hidden');
             
-            // สั่งเปิดแชท
-            window.$chatwoot.toggle("open");
-            clearInterval(checkWidget);
+            if (setupView) setupView.style.display = 'none';
+            
+            // ให้เวลา DOM จัดการก่อนเปิดแชท เพื่อลดโอกาสเกิด Loop
+            setTimeout(() => {
+                window.$chatwoot.toggle("open");
+                clearInterval(checkWidget);
+                isMovingWidget = false;
+            }, 500);
           }
-        }, 300);
+        }, 500);
       });
 
       function updateUIConnected() {
