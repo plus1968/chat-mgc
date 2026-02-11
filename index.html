@@ -33,12 +33,12 @@
             position: relative;
         }
 
-        /* Hide default Chatwoot bubble */
+        /* ซ่อนปุ่ม Bubble ดั้งเดิมของ Chatwoot */
         .woot-widget-bubble { 
             display: none !important; 
         }
 
-        /* Customize widget holder when loaded */
+        /* ปรับแต่งหน้าต่างแชทเมื่อโหลดเสร็จ */
         .woot-widget-holder {
             position: relative !important;
             width: 100% !important;
@@ -47,7 +47,7 @@
             box-shadow: none !important;
             border-radius: 0 !important;
             visibility: visible !important;
-            display: none; /* Hidden until button click */
+            display: none; 
         }
 
         .woot-widget-holder.active {
@@ -61,10 +61,14 @@
         .connect-button {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .connect-button:hover {
+        .connect-button:hover:not(:disabled) {
             letter-spacing: 0.1em;
             background-color: #000;
             color: #fff;
+        }
+        .connect-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .fade-in { animation: fadeIn 0.3s ease forwards; }
@@ -119,7 +123,7 @@
 
             <!-- Chat Interface Area -->
             <div id="chat-container">
-                <!-- Initial View with Connect Button -->
+                <!-- หน้าจอเริ่มต้นและปุ่มเชื่อมต่อ -->
                 <div id="setup-view" class="text-center p-8 fade-in">
                     <div class="mb-6 inline-flex w-20 h-20 bg-black/5 items-center justify-center rounded-full">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-black/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -127,8 +131,14 @@
                         </svg>
                     </div>
                     <h3 class="text-xl font-semibold text-black mb-2">MGC Messaging Service</h3>
-                    <p class="text-sm text-black/40 mb-10 max-w-xs mx-auto">คลิกปุ่มด้านล่างเพื่อเริ่มการสนทนาที่ปลอดภัยกับเจ้าหน้าที่</p>
+                    <p id="setup-instruction" class="text-sm text-black/40 mb-10 max-w-xs mx-auto">คลิกปุ่มด้านล่างเพื่อเริ่มการสนทนาที่ปลอดภัยกับเจ้าหน้าที่</p>
                     
+                    <div id="error-message" class="hidden mb-6 p-4 bg-red-50 rounded-xl border border-red-100 max-w-xs mx-auto">
+                        <p class="text-[11px] text-red-600 leading-relaxed font-medium">
+                            ขออภัย เซิร์ฟเวอร์ไม่ว่างในขณะนี้ (Error 429)<br>กรุณารอสักครู่แล้วลองใหม่อีกครั้ง
+                        </p>
+                    </div>
+
                     <button 
                         onclick="initiateChat()" 
                         id="connect-btn"
@@ -147,33 +157,49 @@
     </div>
 
     <script>
-      // 1. Chatwoot Settings
+      // 1. ตั้งค่า Chatwoot
       window.chatwootSettings = {
         hideMessageBubble: true,
         type: 'expanded_bubble',
       };
 
       let isSdkLoading = false;
+      let connectionTimeout;
 
       function initiateChat() {
-        if (isSdkLoading) return; // ป้องกันการกดซ้ำ
+        if (isSdkLoading) return;
         
         const btn = document.getElementById('connect-btn');
         const loading = document.getElementById('loading-view');
+        const errorMsg = document.getElementById('error-message');
+        const instruction = document.getElementById('setup-instruction');
         
         isSdkLoading = true;
         btn.classList.add('hidden');
+        errorMsg.classList.add('hidden');
+        instruction.classList.remove('hidden');
         loading.classList.remove('hidden');
         document.getElementById('status-text').innerText = "กำลังเชื่อมต่อ...";
 
-        // 2. Load SDK only on button click and ensure it's only loaded once
+        // ตั้งเวลา Timeout 10 วินาที หากโหลดไม่สำเร็จ (อาจติด 429)
+        connectionTimeout = setTimeout(() => {
+            handleConnectionError();
+        }, 12000);
+
+        // 2. โหลด SDK
         if (!document.getElementById('chatwoot-sdk')) {
           (function(d,t) {
             var BASE_URL="https://chatwoot-development-7684.up.railway.app";
             var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
             g.src=BASE_URL+"/packs/js/sdk.js";
-            g.id = "chatwoot-sdk"; // กำหนด ID เพื่อตรวจสอบ
+            g.id = "chatwoot-sdk";
             g.async = true;
+            
+            // ตรวจสอบถ้า Script โหลดไม่สำเร็จ (เช่น 429 ในไฟล์ JS)
+            g.onerror = function() {
+                handleConnectionError();
+            };
+
             s.parentNode.insertBefore(g,s);
             g.onload=function(){
               window.chatwootSDK.run({
@@ -182,12 +208,40 @@
               })
             }
           })(document,"script");
+        } else {
+            // กรณีมี Script อยู่แล้วแต่ต้องการ Run ใหม่ (Retry)
+            if (window.chatwootSDK) {
+                window.chatwootSDK.run({
+                    websiteToken: 'dkhmsCUsBqS7iyJkRs2iqPRb',
+                    baseUrl: "https://chatwoot-development-7684.up.railway.app"
+                });
+            }
         }
       }
 
-      // 3. Handle Widget Positioning when ready
+      function handleConnectionError() {
+        clearTimeout(connectionTimeout);
+        isSdkLoading = false;
+        
+        const btn = document.getElementById('connect-btn');
+        const loading = document.getElementById('loading-view');
+        const errorMsg = document.getElementById('error-message');
+        const instruction = document.getElementById('setup-instruction');
+        
+        btn.classList.remove('hidden');
+        btn.innerText = "Try Again";
+        loading.classList.add('hidden');
+        errorMsg.classList.remove('hidden');
+        instruction.classList.add('hidden');
+        
+        document.getElementById('status-text').innerText = "เชื่อมต่อล้มเหลว";
+        console.warn("MGC: Connection Timeout or 429 Error detected.");
+      }
+
+      // 3. จัดการ Widget เมื่อพร้อมใช้งาน
       window.addEventListener("chatwoot:ready", function () {
         console.log("MGC: SDK Ready");
+        clearTimeout(connectionTimeout); // ยกเลิก Timeout เมื่อเชื่อมต่อสำเร็จ
         
         document.getElementById('status-text').innerText = "ออนไลน์ (เรียลไทม์)";
         const dotContainer = document.getElementById('status-dot');
@@ -204,7 +258,6 @@
             widget.classList.add('active');
             if (setupView) setupView.remove();
             
-            // Open the chat within the card
             if (window.$chatwoot) {
                 window.$chatwoot.toggle("open");
             }
