@@ -23,49 +23,52 @@
             background: linear-gradient(180deg, #111111 0%, #000000 100%);
         }
         
+        /* แก้ไข Layout พื้นที่แชท */
         #chat-container {
-            width: 100%;
-            height: 100%;
             background-color: #ffffff;
             position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        /* STABLE POSITIONING:
-           บังคับให้ Widget ของ Chatwoot แสดงผลเต็มพื้นที่ Card
-           และป้องกันการตัดการเชื่อมต่อจากการย้าย DOM
+        /* FORCE CONTAINER STYLES:
+           ลบคุณสมบัติ Fixed และ Offset ของ Chatwoot SDK ทิ้งทั้งหมด
         */
         .woot-widget-holder {
-            position: absolute !important;
-            top: 0 !important;
-            right: 0 !important;
-            bottom: 0 !important;
-            left: 0 !important;
+            position: absolute !important; 
             width: 100% !important;
             height: 100% !important;
+            inset: 0 !important; /* บังคับติดขอบทุกด้านของ container */
+            margin: 0 !important;
+            max-height: 100% !important;
+            max-width: 100% !important;
             box-shadow: none !important;
             border-radius: 0 !important;
-            z-index: 10 !important;
+            z-index: 50 !important;
+            transform: none !important; /* ป้องกัน SDK ใส่ transform */
+        }
+
+        /* บังคับ Iframe ภายในให้เต็มพื้นที่และลบ Shadow */
+        .woot-widget-holder iframe {
+            border: none !important;
+            width: 100% !important;
+            height: 100% !important;
+            position: absolute !important;
+            inset: 0 !important;
+            border-radius: 0 !important;
         }
 
         .woot-widget-bubble {
-            display: none !important; 
+            display: none !important;
         }
 
         .fade-in { animation: fadeIn 0.3s ease forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Status Animation */
         .sync-active { animation: spin 0.8s linear; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        
-        .status-pulse {
-            animation: statusPulse 2s infinite;
-        }
-        @keyframes statusPulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.4; }
-            100% { opacity: 1; }
-        }
     </style>
 </head>
 <body class="flex items-center justify-center p-4 md:p-8">
@@ -94,17 +97,14 @@
                                         <span id="dot-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-gray-400 opacity-75"></span>
                                         <span id="dot-static" class="relative inline-flex rounded-full h-2 w-2 bg-gray-500"></span>
                                     </div>
-                                    <span id="status-text" class="text-xs font-semibold tracking-wide">Initializing...</span>
+                                    <span id="status-text" class="text-xs font-semibold tracking-wide">Ready</span>
                                 </div>
-                                <p id="socket-info" class="text-[10px] text-white/30 italic font-mono truncate">Checking WebSockets</p>
+                                <p id="socket-info" class="text-[10px] text-white/30 italic font-mono truncate">Protocol: Standard</p>
                             </div>
                         </section>
 
                         <section>
                             <h2 class="text-[10px] uppercase tracking-[0.4em] text-white/40 font-bold mb-4">Sync Management</h2>
-                            <p class="text-[10px] text-white/40 leading-relaxed mb-4">
-                                ระบบจะพยายามรักษาการเชื่อมต่อแบบ Real-time หากพบการสะดุด กด Sync เพื่อดึงข้อมูลใหม่
-                            </p>
                             <button onclick="syncData()" id="sync-btn-ui" class="group flex items-center justify-center gap-2 w-full py-3 bg-white/5 hover:bg-white text-[10px] text-white hover:text-black font-bold uppercase tracking-widest rounded-xl border border-white/10 transition-all">
                                 <svg xmlns="http://www.w3.org/2000/svg" id="sync-icon" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -124,7 +124,7 @@
             </div>
 
             <!-- Chat Interface Area -->
-            <div id="chat-container">
+            <div id="chat-container" class="flex-1">
                 <div id="setup-view" class="flex flex-col items-center justify-center h-full text-center p-8 fade-in">
                     <div class="mb-6 inline-flex w-20 h-20 bg-black/5 items-center justify-center rounded-full">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-black/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -132,7 +132,7 @@
                         </svg>
                     </div>
                     <h3 class="text-xl font-semibold text-black mb-2">Secure Message Node</h3>
-                    <p class="text-sm text-black/40 mb-10 max-w-xs mx-auto">Establishing stable link to Chatwoot Cluster...</p>
+                    <p id="setup-text" class="text-sm text-black/40 mb-10 max-w-xs mx-auto">Establishing stable link to Chatwoot Cluster...</p>
                     
                     <button 
                         onclick="initiateChat()" 
@@ -151,27 +151,39 @@
     </div>
 
     <script>
-      // 1. Standard Configuration
       window.chatwootSettings = {
-        position: "right",
+        position: "left", // ลองเปลี่ยนเป็น left เพื่อแก้ทาง SDK internal logic
         type: "standard",
         hideMessageBubble: true,
-        launcherTitle: "คุยกับ MGC"
       };
 
       let sdkLoaded = false;
 
       function initiateChat() {
         if(sdkLoaded) return;
-        document.getElementById('connect-btn').classList.add('hidden');
-        document.getElementById('loading-view').classList.remove('hidden');
+        const btn = document.getElementById('connect-btn');
+        const loader = document.getElementById('loading-view');
+        const txt = document.getElementById('setup-text');
 
-        // 2. Load SDK
+        btn.classList.add('hidden');
+        loader.classList.remove('hidden');
+        document.getElementById('status-text').innerText = "Connecting...";
+
         (function(d,t) {
           var BASE_URL="https://chatwoot-development-7684.up.railway.app";
           var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
           g.src=BASE_URL+"/packs/js/sdk.js";
           g.async = true;
+          
+          g.onerror = function() {
+            loader.classList.add('hidden');
+            btn.classList.remove('hidden');
+            btn.innerText = "Retry Connection";
+            txt.innerText = "Connection failed (Error 429). Please try again later.";
+            txt.classList.add('text-red-500');
+            document.getElementById('status-text').innerText = "Error";
+          };
+
           s.parentNode.insertBefore(g,s);
           g.onload=function(){
             window.chatwootSDK.run({
@@ -183,24 +195,28 @@
         })(document,"script");
       }
 
-      // 3. เมื่อ SDK พร้อมใช้งาน
       window.addEventListener("chatwoot:ready", function () {
         updateUIConnected();
-        
         const checkWidget = setInterval(() => {
           const widget = document.querySelector('.woot-widget-holder');
+          const container = document.getElementById('chat-container');
+          
           if (widget && window.$chatwoot) {
+            // บังคับล้าง inline styles ที่ SDK อาจจะเติมเข้ามาภายหลัง
+            widget.style.setProperty('position', 'absolute', 'important');
+            widget.style.setProperty('inset', '0', 'important');
+            widget.style.setProperty('width', '100%', 'important');
+            widget.style.setProperty('height', '100%', 'important');
+
+            container.appendChild(widget);
+            widget.classList.add('active');
             document.getElementById('setup-view').classList.add('hidden');
+            
+            // สั่งเปิดแชท
             window.$chatwoot.toggle("open");
             clearInterval(checkWidget);
           }
-        }, 500);
-      });
-
-      // ดักจับ Event ข้อความเพื่อยืนยัน Real-time status
-      window.addEventListener("chatwoot:on-message", function(e) {
-          console.log("MGC: Real-time message detected");
-          updateUIConnected();
+        }, 300);
       });
 
       function updateUIConnected() {
@@ -208,24 +224,19 @@
           document.getElementById('socket-info').innerText = "WebSocket: Stabilized";
           const dotStatic = document.getElementById('dot-static');
           const dotPing = document.getElementById('dot-ping');
-          
           dotStatic.className = "relative inline-flex rounded-full h-2 w-2 bg-green-500";
           dotPing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75";
       }
 
-      // ฟังก์ชัน Sync ข้อมูล (ดึงข้อความจาก API ที่คุณแจ้งมา)
       function syncData() {
         if (!window.$chatwoot) return;
-        
         const icon = document.getElementById('sync-icon');
         icon.classList.add('sync-active');
-        
-        // บังคับ Re-fetch โดยการสลับสถานะ (Trigger GET /api/v1/widget/messages)
         window.$chatwoot.toggle("close");
         setTimeout(() => {
             window.$chatwoot.toggle("open");
             setTimeout(() => icon.classList.remove('sync-active'), 800);
-        }, 1500);
+        }, 1000);
       }
 
       function clearSession() {
@@ -234,15 +245,6 @@
               location.reload();
           }
       }
-      
-      // Monitor WebSocket Flapping (อ้างอิงจาก Log ที่ส่งมา)
-      setInterval(() => {
-          if(sdkLoaded && !document.querySelector('.woot-widget-holder')) {
-              console.warn("MGC Node: Connection lost. Re-establishing...");
-              document.getElementById('status-text').innerText = "Re-connecting...";
-              document.getElementById('socket-info').innerText = "WebSocket: Flapping";
-          }
-      }, 5000);
     </script>
 </body>
 </html>
