@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MGC - Monochrome Message Center</title>
+    <title>MGC - Monochrome Professional API Chat</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Sarabun', sans-serif;
-            background-color: #0a0a0a; /* Pure Black Background */
+            background-color: #0a0a0a;
             height: 100vh;
             margin: 0;
             overflow: hidden;
@@ -22,34 +22,65 @@
         .sidebar-gradient {
             background: linear-gradient(180deg, #111111 0%, #000000 100%);
         }
-        #chat-container iframe {
-            border: none;
+        
+        #chat-container {
             width: 100%;
             height: 100%;
-            /* ทำให้ iframe เข้ากับโทนสีขาวดำ */
-            filter: grayscale(0.2); 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #ffffff;
+            position: relative;
         }
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 4px;
+
+        /* Hide default Chatwoot bubble */
+        .woot-widget-bubble { 
+            display: none !important; 
         }
-        ::-webkit-scrollbar-thumb {
-            background: #444;
-            border-radius: 10px;
+
+        /* Customize widget holder when loaded */
+        .woot-widget-holder {
+            position: relative !important;
+            width: 100% !important;
+            height: 100% !important;
+            inset: auto !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            visibility: visible !important;
+            display: none; /* Hidden until button click */
         }
+
+        .woot-widget-holder.active {
+            display: block;
+        }
+
+        .woot-widget-holder iframe {
+            border: none !important;
+        }
+
+        .connect-button {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .connect-button:hover {
+            letter-spacing: 0.1em;
+            background-color: #000;
+            color: #fff;
+        }
+
+        .fade-in { animation: fadeIn 0.3s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="flex items-center justify-center p-4 md:p-8">
 
-    <!-- Main Portal Container -->
     <div class="max-w-7xl w-full h-full max-h-[900px]">
         <div class="mono-card rounded-[2rem] overflow-hidden flex flex-col md:flex-row h-full shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)]">
             
-            <!-- Sidebar: Minimalist Black -->
+            <!-- Sidebar -->
             <div class="w-full md:w-80 sidebar-gradient p-10 text-white flex flex-col justify-between shrink-0 border-r border-white/5">
                 <div>
                     <div class="flex items-center gap-3 mb-12">
-                        <div class="w-10 h-10 bg-white flex items-center justify-center rounded-full">
+                        <div class="w-10 h-10 bg-white flex items-center justify-center rounded-full shadow-lg">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                             </svg>
@@ -59,59 +90,135 @@
                     
                     <div class="space-y-10">
                         <section>
-                            <h2 class="text-[10px] uppercase tracking-[0.4em] text-white/40 font-bold mb-4">Navigation</h2>
-                            <nav class="space-y-4">
-                                <a href="#" class="flex items-center text-sm font-medium text-white group">
-                                    <span class="w-1.5 h-1.5 bg-white rounded-full mr-3"></span>
-                                    Live Assistance
-                                </a>
-                                <a href="#" class="flex items-center text-sm font-medium text-white/50 hover:text-white transition-colors">
-                                    <span class="w-1.5 h-1.5 bg-transparent border border-white/30 rounded-full mr-3"></span>
-                                    Documentation
-                                </a>
-                            </nav>
-                        </section>
-
-                        <section>
-                            <h2 class="text-[10px] uppercase tracking-[0.4em] text-white/40 font-bold mb-4">Support Status</h2>
+                            <h2 class="text-[10px] uppercase tracking-[0.4em] text-white/40 font-bold mb-4">สถานะการเชื่อมต่อ</h2>
                             <div class="bg-white/5 rounded-2xl p-5 border border-white/5">
                                 <div class="flex items-center gap-3 mb-2">
-                                    <div class="relative flex h-2 w-2">
-                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                                        <span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                                    <div id="status-dot" class="relative flex h-2 w-2">
+                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-gray-400 opacity-75"></span>
+                                        <span class="relative inline-flex rounded-full h-2 w-2 bg-gray-500"></span>
                                     </div>
-                                    <span class="text-xs font-semibold tracking-wide">System Online</span>
+                                    <span id="status-text" class="text-xs font-semibold tracking-wide">รอการเชื่อมต่อ</span>
                                 </div>
-                                <p class="text-[11px] text-white/50 leading-relaxed">
-                                    พร้อมเชื่อมต่อคุณกับเจ้าหน้าที่แบบเรียลไทม์ผ่านระบบรักษาความปลอดภัยสูงสุด
-                                </p>
+                                <p id="connection-type" class="text-[10px] text-white/30 italic font-mono truncate">Ready to Connect</p>
+                            </div>
+                        </section>
+                        
+                        <section>
+                            <h2 class="text-[10px] uppercase tracking-[0.4em] text-white/40 font-bold mb-4">Channel Info</h2>
+                            <div class="text-[11px] text-white/50 mb-1">Website Token:</div>
+                            <div class="text-[11px] font-mono text-white/30 break-all bg-black/20 p-2 rounded border border-white/5">
+                                dkhmsCUs...2iqPRb
                             </div>
                         </section>
                     </div>
                 </div>
-
-                <div class="pt-8 border-t border-white/10">
-                    <p class="text-[9px] text-white/30 uppercase tracking-[0.2em] mb-1">Authenticated Access</p>
-                    <p class="text-[9px] text-white/20">&copy; 2026 MONOCHROME DIGITAL LAB</p>
+                <div class="pt-8 border-t border-white/10 text-[9px] text-white/20 uppercase tracking-[0.2em]">
+                    &copy; 2026 MONOCHROME DIGITAL LAB
                 </div>
             </div>
 
-            <!-- Chat Interface: Clean White -->
-            <div id="chat-container" class="flex-grow bg-white relative">
-                <div class="absolute inset-0 flex items-center justify-center bg-gray-50 -z-10">
-                    <div class="text-center">
-                        <div class="inline-block w-8 h-8 border-2 border-black/10 border-t-black rounded-full animate-spin mb-4"></div>
-                        <p class="text-xs text-black/40 font-medium uppercase tracking-widest">Initializing Secure Chat</p>
+            <!-- Chat Interface Area -->
+            <div id="chat-container">
+                <!-- Initial View with Connect Button -->
+                <div id="setup-view" class="text-center p-8 fade-in">
+                    <div class="mb-6 inline-flex w-20 h-20 bg-black/5 items-center justify-center rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-black/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-black mb-2">MGC Messaging Service</h3>
+                    <p class="text-sm text-black/40 mb-10 max-w-xs mx-auto">คลิกปุ่มด้านล่างเพื่อเริ่มการสนทนาที่ปลอดภัยกับเจ้าหน้าที่</p>
+                    
+                    <button 
+                        onclick="initiateChat()" 
+                        id="connect-btn"
+                        class="connect-button px-10 py-4 border-2 border-black text-[12px] font-bold uppercase tracking-[0.2em] rounded-full hover:bg-black hover:text-white transition-all shadow-sm"
+                    >
+                        Connect to Agent
+                    </button>
+
+                    <div id="loading-view" class="hidden mt-6">
+                        <div class="inline-block w-6 h-6 border-2 border-black/10 border-t-black rounded-full animate-spin"></div>
+                        <p class="text-[10px] uppercase tracking-widest text-black/40 mt-3">Establishing Node...</p>
                     </div>
                 </div>
-                <!-- Embedding Chatwoot -->
-                <iframe
-                    src="https://chatwoot-development-7684.up.railway.app/widget?website_token=dkhmsCUsBqS7iyJkRs2iqPRb"
-                    allow="camera;microphone;clipboard-read;clipboard-write;fullscreen"
-                ></iframe>
             </div>
         </div>
     </div>
 
+    <script>
+      // 1. Chatwoot Settings
+      window.chatwootSettings = {
+        hideMessageBubble: true,
+        type: 'expanded_bubble',
+      };
+
+      let isSdkLoading = false;
+
+      function initiateChat() {
+        if (isSdkLoading) return; // ป้องกันการกดซ้ำ
+        
+        const btn = document.getElementById('connect-btn');
+        const loading = document.getElementById('loading-view');
+        
+        isSdkLoading = true;
+        btn.classList.add('hidden');
+        loading.classList.remove('hidden');
+        document.getElementById('status-text').innerText = "กำลังเชื่อมต่อ...";
+
+        // 2. Load SDK only on button click and ensure it's only loaded once
+        if (!document.getElementById('chatwoot-sdk')) {
+          (function(d,t) {
+            var BASE_URL="https://chatwoot-development-7684.up.railway.app";
+            var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
+            g.src=BASE_URL+"/packs/js/sdk.js";
+            g.id = "chatwoot-sdk"; // กำหนด ID เพื่อตรวจสอบ
+            g.async = true;
+            s.parentNode.insertBefore(g,s);
+            g.onload=function(){
+              window.chatwootSDK.run({
+                websiteToken: 'dkhmsCUsBqS7iyJkRs2iqPRb',
+                baseUrl: BASE_URL
+              })
+            }
+          })(document,"script");
+        }
+      }
+
+      // 3. Handle Widget Positioning when ready
+      window.addEventListener("chatwoot:ready", function () {
+        console.log("MGC: SDK Ready");
+        
+        document.getElementById('status-text').innerText = "ออนไลน์ (เรียลไทม์)";
+        const dotContainer = document.getElementById('status-dot');
+        dotContainer.querySelector('.animate-ping').classList.replace('bg-gray-400', 'bg-green-400');
+        dotContainer.querySelector('.bg-gray-500').classList.replace('bg-gray-500', 'bg-green-500');
+
+        const checkWidget = setInterval(() => {
+          const widget = document.querySelector('.woot-widget-holder');
+          const container = document.getElementById('chat-container');
+          const setupView = document.getElementById('setup-view');
+
+          if (widget) {
+            container.appendChild(widget);
+            widget.classList.add('active');
+            if (setupView) setupView.remove();
+            
+            // Open the chat within the card
+            if (window.$chatwoot) {
+                window.$chatwoot.toggle("open");
+            }
+            clearInterval(checkWidget);
+          }
+        }, 300);
+      });
+
+      function clearSession() {
+          if(confirm("ยืนยันการล้างข้อมูลเพื่อเริ่มการเชื่อมต่อใหม่?")) {
+              localStorage.clear();
+              location.reload();
+          }
+      }
+    </script>
 </body>
 </html>
