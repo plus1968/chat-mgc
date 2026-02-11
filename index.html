@@ -56,6 +56,8 @@
 
         .woot-widget-holder iframe {
             border: none !important;
+            height: 100% !important;
+            width: 100% !important;
         }
 
         .connect-button {
@@ -73,6 +75,16 @@
 
         .fade-in { animation: fadeIn 0.3s ease forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .pulse-green {
+            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
     </style>
 </head>
 <body class="flex items-center justify-center p-4 md:p-8">
@@ -108,10 +120,26 @@
                         </section>
                         
                         <section>
-                            <h2 class="text-[10px] uppercase tracking-[0.4em] text-white/40 font-bold mb-4">Channel Info</h2>
-                            <div class="text-[11px] text-white/50 mb-1">Website Token:</div>
-                            <div class="text-[11px] font-mono text-white/30 break-all bg-black/20 p-2 rounded border border-white/5">
-                                dkhmsCUs...2iqPRb
+                            <h2 class="text-[10px] uppercase tracking-[0.4em] text-white/40 font-bold mb-4">Node Diagnostics</h2>
+                            <div class="bg-black/20 rounded-xl p-4 border border-white/5">
+                                <div class="flex flex-col gap-3">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-[9px] text-white/40 uppercase">Real-time (WS)</span>
+                                        <span id="ws-status" class="text-[9px] text-red-400 font-bold">Offline</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-[9px] text-white/40 uppercase">Last Sync</span>
+                                        <span id="last-sync" class="text-[9px] text-white/60">No data</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-[9px] text-white/40 uppercase">Events</span>
+                                        <span id="msg-count" class="text-[9px] text-white/60">0 detected</span>
+                                    </div>
+                                    
+                                    <button onclick="syncData()" id="sync-btn" class="mt-2 w-full py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] uppercase tracking-widest transition-all">
+                                        Sync Data Now
+                                    </button>
+                                </div>
                             </div>
                         </section>
                     </div>
@@ -165,6 +193,7 @@
 
       let isSdkLoading = false;
       let connectionTimeout;
+      let messagesReceived = 0;
 
       function initiateChat() {
         if (isSdkLoading) return;
@@ -181,10 +210,10 @@
         loading.classList.remove('hidden');
         document.getElementById('status-text').innerText = "กำลังเชื่อมต่อ...";
 
-        // ตั้งเวลา Timeout 10 วินาที หากโหลดไม่สำเร็จ (อาจติด 429)
+        // ตั้งเวลา Timeout 15 วินาที
         connectionTimeout = setTimeout(() => {
             handleConnectionError();
-        }, 12000);
+        }, 15000);
 
         // 2. โหลด SDK
         if (!document.getElementById('chatwoot-sdk')) {
@@ -195,7 +224,6 @@
             g.id = "chatwoot-sdk";
             g.async = true;
             
-            // ตรวจสอบถ้า Script โหลดไม่สำเร็จ (เช่น 429 ในไฟล์ JS)
             g.onerror = function() {
                 handleConnectionError();
             };
@@ -209,7 +237,6 @@
             }
           })(document,"script");
         } else {
-            // กรณีมี Script อยู่แล้วแต่ต้องการ Run ใหม่ (Retry)
             if (window.chatwootSDK) {
                 window.chatwootSDK.run({
                     websiteToken: 'dkhmsCUsBqS7iyJkRs2iqPRb',
@@ -235,15 +262,18 @@
         instruction.classList.add('hidden');
         
         document.getElementById('status-text').innerText = "เชื่อมต่อล้มเหลว";
-        console.warn("MGC: Connection Timeout or 429 Error detected.");
+        document.getElementById('ws-status').innerText = "Error";
       }
 
       // 3. จัดการ Widget เมื่อพร้อมใช้งาน
       window.addEventListener("chatwoot:ready", function () {
         console.log("MGC: SDK Ready");
-        clearTimeout(connectionTimeout); // ยกเลิก Timeout เมื่อเชื่อมต่อสำเร็จ
+        clearTimeout(connectionTimeout);
         
         document.getElementById('status-text').innerText = "ออนไลน์ (เรียลไทม์)";
+        document.getElementById('ws-status').innerText = "Active";
+        document.getElementById('ws-status').classList.replace('text-red-400', 'text-green-400');
+        
         const dotContainer = document.getElementById('status-dot');
         dotContainer.querySelector('.animate-ping').classList.replace('bg-gray-400', 'bg-green-400');
         dotContainer.querySelector('.bg-gray-500').classList.replace('bg-gray-500', 'bg-green-500');
@@ -260,11 +290,42 @@
             
             if (window.$chatwoot) {
                 window.$chatwoot.toggle("open");
+                updateSyncTime();
             }
             clearInterval(checkWidget);
           }
         }, 300);
       });
+
+      // ดักจับเหตุการณ์เมื่อได้รับข้อความ
+      window.addEventListener("chatwoot:on-message", function (event) {
+        console.log("MGC: Message Received", event.detail);
+        messagesReceived++;
+        document.getElementById('msg-count').innerText = `${messagesReceived} detected`;
+        updateSyncTime();
+        
+        // บังคับให้หน้าต่างสั่นเบาๆ เมื่อมีข้อความใหม่ (Visual Cue)
+        const dot = document.getElementById('status-dot').querySelector('.bg-green-500');
+        dot.classList.add('pulse-green');
+        setTimeout(() => dot.classList.remove('pulse-green'), 2000);
+      });
+
+      function updateSyncTime() {
+        const now = new Date();
+        document.getElementById('last-sync').innerText = now.toLocaleTimeString();
+      }
+
+      // ฟังก์ชันสำหรับบังคับซิงค์ข้อมูลใหม่
+      function syncData() {
+        if (window.$chatwoot) {
+            // การปิดและเปิดใหม่ใน SDK จะช่วยกระตุ้นให้ Iframe ทำการ Re-fetch ล่าสุด
+            window.$chatwoot.toggle("close");
+            setTimeout(() => {
+                window.$chatwoot.toggle("open");
+                updateSyncTime();
+            }, 100);
+        }
+      }
 
       function clearSession() {
           if(confirm("ยืนยันการล้างข้อมูลเพื่อเริ่มการเชื่อมต่อใหม่?")) {
